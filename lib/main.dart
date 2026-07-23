@@ -1,6 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+class TriggerLightningIntent extends Intent {
+  const TriggerLightningIntent();
+}
 
 void main() {
   runApp(const MyApp());
@@ -63,9 +68,8 @@ class _MyHomePageState extends State<MyHomePage>
         }
       } else {
         // Subtle random chance for lightning (~0.2% per frame)
-        if (Random().nextDouble() < 0.002 && _currentSize != Size.zero) {
-          _lightningIntensity = 1.0;
-          _lightningPath = _generateLightningPath(_currentSize);
+        if (Random().nextDouble() < 0.002) {
+          _triggerLightning();
         }
       }
 
@@ -100,6 +104,12 @@ class _MyHomePageState extends State<MyHomePage>
       setState(() {});
     });
     _controller.repeat();
+  }
+
+  void _triggerLightning() {
+    if (_currentSize == Size.zero) return;
+    _lightningIntensity = 1.0;
+    _lightningPath = _generateLightningPath(_currentSize);
   }
 
   List<Offset> _generateLightningPath(Size size) {
@@ -166,17 +176,35 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: RepaintBoundary(
-          child: CustomPaint(
-            size: _currentSize,
-            painter: PurpleRainPainter(
-              particles: particles,
-              splashes: splashes,
-              lightningIntensity: _lightningIntensity,
-              lightningPath: _lightningPath,
-              repaint: _controller,
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.keyT): TriggerLightningIntent(),
+      },
+      child: Actions(
+        actions: {
+          TriggerLightningIntent: CallbackAction<TriggerLightningIntent>(
+            onInvoke: (intent) {
+              _triggerLightning();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            body: Center(
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  size: _currentSize,
+                  painter: PurpleRainPainter(
+                    particles: particles,
+                    splashes: splashes,
+                    lightningIntensity: _lightningIntensity,
+                    lightningPath: _lightningPath,
+                    repaint: _controller,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
